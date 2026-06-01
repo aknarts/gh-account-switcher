@@ -9,6 +9,64 @@
       const account = getMetaContent("user-login");
       sendResponse({ account: account || null });
     }
+    if (msg.type === "getAccounts") {
+      const nonce = getMetaContent("fetch-nonce");
+      const current = getMetaContent("user-login");
+      if (!nonce || !current) {
+        sendResponse({ current: null, stashed: [] });
+        return true;
+      }
+      fetch("https://github.com/_side-panels/user.json", {
+        headers: {
+          accept: "application/json",
+          "x-requested-with": "XMLHttpRequest",
+          "github-verified-fetch": "true",
+          "x-fetch-nonce": nonce,
+        },
+        credentials: "same-origin",
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          sendResponse({
+            current,
+            stashed: (data.stashedAccounts || []).map((a) => ({
+              login: a.login,
+              name: a.name,
+              avatarUrl: a.avatarUrl,
+              sessionId: a.userSessionId,
+            })),
+          });
+        })
+        .catch(() => sendResponse({ current, stashed: [] }));
+      return true;
+    }
+    if (msg.type === "switchTo") {
+      const nonce = getMetaContent("fetch-nonce");
+      if (!nonce) {
+        sendResponse({ ok: false });
+        return true;
+      }
+      const formData = new FormData();
+      formData.append("user_session_id", msg.sessionId.toString());
+      formData.append("from", "nav_panel");
+      fetch("https://github.com/switch_account", {
+        method: "POST",
+        headers: {
+          "github-verified-fetch": "true",
+          "x-requested-with": "XMLHttpRequest",
+          accept: "application/json",
+          "x-fetch-nonce": nonce,
+        },
+        body: formData,
+        credentials: "same-origin",
+      })
+        .then((r) => {
+          sendResponse({ ok: r.ok });
+          if (r.ok) location.reload();
+        })
+        .catch(() => sendResponse({ ok: false }));
+      return true;
+    }
   });
 
   await checkAndSwitch();
