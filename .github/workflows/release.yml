@@ -33,7 +33,9 @@ jobs:
           generate_release_notes: true
 
       - name: Publish to Chrome Web Store
-        if: secrets.CHROME_EXTENSION_ID != ''
+        if: ${{ env.CHROME_EXTENSION_ID != '' }}
+        env:
+          CHROME_EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
         run: |
           npx chrome-webstore-upload-cli upload \
             --source gh-account-switcher-${{ env.VERSION }}.zip \
