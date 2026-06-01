@@ -116,6 +116,15 @@
     return el ? el.getAttribute("content") : null;
   }
 
+  const GITHUB_SYSTEM_PATHS = new Set([
+    "settings", "notifications", "dashboard", "pulls", "issues",
+    "explore", "trending", "new", "login", "logout", "signup",
+    "features", "marketplace", "sponsors", "codespaces", "copilot",
+    "stars", "watching", "collections", "topics", "events",
+    "account", "sessions", "password_reset", "enterprises",
+    "organizations", "apps", "pages",
+  ]);
+
   async function getTargetAccount(url) {
     const { rules = [], defaultAccount = null } = await chrome.storage.sync.get([
       "rules",
@@ -125,6 +134,9 @@
     for (const rule of rules) {
       if (matchRule(rule, url)) return rule.account;
     }
+
+    const firstSegment = url.pathname.split("/").filter(Boolean)[0];
+    if (!firstSegment || GITHUB_SYSTEM_PATHS.has(firstSegment)) return null;
 
     return defaultAccount;
   }
