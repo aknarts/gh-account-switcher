@@ -5,7 +5,8 @@
   "description": "Automatically switches GitHub accounts based on configurable URL rules",
   "permissions": [
     "storage",
-    "activeTab"
+    "activeTab",
+    "tabs"
   ],
   "host_permissions": [
     "https://github.com/*"

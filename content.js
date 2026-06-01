@@ -4,6 +4,13 @@
   const COOLDOWN_MS = 5000;
   let lastSwitchTime = 0;
 
+  chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    if (msg.type === "getStatus") {
+      const account = getMetaContent("user-login");
+      sendResponse({ account: account || null });
+    }
+  });
+
   await checkAndSwitch();
 
   document.addEventListener("turbo:render", () => checkAndSwitch());
