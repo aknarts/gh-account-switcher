@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GitHub Account Switcher — Settings</title>
+<style>
+:root {
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --bg: #ffffff;
+  --bg-secondary: #f6f8fa;
+  --border: #d1d9e0;
+  --text: #1f2328;
+  --text-muted: #656d76;
+  --accent: #1a7f37;
+  --accent-hover: #116329;
+  --danger: #cf222e;
+  --danger-hover: #a40e26;
+  --input-bg: #ffffff;
+  --shadow: 0 1px 3px rgba(0,0,0,0.04);
+  --radius: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d1117;
+    --bg-secondary: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --accent: #238636;
+    --accent-hover: #2ea043;
+    --danger: #da3633;
+    --danger-hover: #f85149;
+    --input-bg: #0d1117;
+    --shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  padding: 48px 24px;
+  max-width: 680px;
+  margin: 0 auto;
+}
+h1 {
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 32px;
+  letter-spacing: -0.3px;
+}
+h2 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.section {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow);
+}
+label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+input, select {
+  font-family: var(--font);
+  font-size: 14px;
+  color: var(--text);
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.15s;
+}
+input:focus, select:focus {
+  border-color: var(--accent);
+}
+select { cursor: pointer; }
+.rule-row {
+  display: grid;
+  grid-template-columns: 130px 1fr 1fr 36px;
+  gap: 10px;
+  align-items: end;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.rule-row:last-of-type { border-bottom: none; }
+.btn {
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  background: var(--bg);
+  color: var(--text);
+}
+.btn:hover { border-color: var(--text-muted); }
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.btn-primary:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+.btn-danger {
+  background: none;
+  border: none;
+  color: var(--danger);
+  padding: 6px 8px;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: var(--radius);
+}
+.btn-danger:hover { background: var(--danger); color: #fff; }
+.actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 8px;
+}
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--accent);
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.2s, transform 0.2s;
+  pointer-events: none;
+}
+.toast.visible { opacity: 1; transform: translateY(0); }
+#rules-list { margin-bottom: 12px; }
+</style>
+</head>
+<body>
+<h1>GitHub Account Switcher — Settings</h1>
+
+<div class="section">
+  <h2>Default Account</h2>
+  <label for="default-account">Fallback login when no rule matches</label>
+  <input type="text" id="default-account" autocomplete="off">
+</div>
+
+<div class="section">
+  <h2>Rules</h2>
+  <div id="rules-list"></div>
+  <div class="actions">
+    <button class="btn" id="add-rule">Add Rule</button>
+  </div>
+</div>
+
+<button class="btn btn-primary" id="save">Save</button>
+<div class="toast" id="toast">Settings saved</div>
+
+<script>
+const rulesList = document.getElementById("rules-list");
+const addBtn = document.getElementById("add-rule");
+const saveBtn = document.getElementById("save");
+const toast = document.getElementById("toast");
+const defaultInput = document.getElementById("default-account");
+
+function createRuleRow(rule) {
+  const row = document.createElement("div");
+  row.className = "rule-row";
+  const sel = document.createElement("select");
+  ["org", "page_id", "path_prefix", "regex"].forEach(t => {
+    const o = document.createElement("option");
+    o.value = t;
+    o.textContent = t;
+    if (t === rule.type) o.selected = true;
+    sel.appendChild(o);
+  });
+  const val = document.createElement("input");
+  val.type = "text";
+  val.value = rule.value || "";
+  val.placeholder = "Match value";
+  const acc = document.createElement("input");
+  acc.type = "text";
+  acc.value = rule.account || "";
+  acc.placeholder = "Account login";
+  const del = document.createElement("button");
+  del.className = "btn-danger";
+  del.textContent = "\u00D7";
+  del.addEventListener("click", () => row.remove());
+  row.appendChild(sel);
+  row.appendChild(val);
+  row.appendChild(acc);
+  row.appendChild(del);
+  return row;
+}
+
+function loadSettings() {
+  chrome.storage.sync.get(["rules", "defaultAccount"], (data) => {
+    defaultInput.value = data.defaultAccount || "";
+    (data.rules || []).forEach(r => rulesList.appendChild(createRuleRow(r)));
+  });
+}
+
+addBtn.addEventListener("click", () => {
+  rulesList.appendChild(createRuleRow({ type: "org", value: "", account: "" }));
+});
+
+saveBtn.addEventListener("click", () => {
+  const rows = rulesList.querySelectorAll(".rule-row");
+  const rules = Array.from(rows).map(row => ({
+    type: row.querySelector("select").value,
+    value: row.querySelectorAll("input")[0].value,
+    account: row.querySelectorAll("input")[1].value
+  }));
+  const defaultAccount = defaultInput.value.trim() || null;
+  chrome.storage.sync.set({ rules, defaultAccount }, () => {
+    toast.classList.add("visible");
+    setTimeout(() => toast.classList.remove("visible"), 2000);
+  });
+});
+
+loadSettings();
+</script>
+</body>
+</html>
