@@ -8,6 +8,8 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -31,6 +33,7 @@ jobs:
           generate_release_notes: true
 
       - name: Publish to Chrome Web Store
+        if: secrets.CHROME_EXTENSION_ID != ''
         run: |
           npx chrome-webstore-upload-cli upload \
             --source gh-account-switcher-${{ env.VERSION }}.zip \
