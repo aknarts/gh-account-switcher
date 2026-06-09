@@ -32,7 +32,7 @@ jobs:
 
       # 3. Test the upload to the Chrome Web Store using the federated token
       - name: Upload to Chrome Web Store
-        uses: mnao305/chrome-extension-upload@v5
+        uses: mnao305/chrome-extension-upload@v6.0.0
         with:
           file-path: 'extension.zip'
           extension-id: ${{ secrets.CWS_EXTENSION_ID }}
