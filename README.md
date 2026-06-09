@@ -32,6 +32,12 @@ Open the extension options page to set up:
 
 You must have multiple accounts added to GitHub's account switcher (Profile → Switch account → Add account) before this extension can switch between them.
 
+## Release
+
+Pushing a `v*` tag whose version matches `manifest.json` creates a GitHub release and packages the extension ZIP.
+
+Chrome Web Store upload is currently manual: download the ZIP from the GitHub release and upload it in the Chrome Web Store Developer Dashboard.
+
 ## How It Works
 
 On each GitHub page load (including SPA navigations):

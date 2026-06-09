@@ -2,6 +2,8 @@
   if (window.self !== window.top) return;
 
   const COOLDOWN_MS = 5000;
+  const SWITCH_ATTEMPT_TTL_MS = 60000;
+  const SWITCH_ATTEMPTS_STORAGE_KEY = "recentSwitchAttempts";
   let lastSwitchTime = 0;
 
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
@@ -100,13 +102,22 @@
       return;
     }
 
+    if (await hasRecentSwitchAttempt(url, targetAccount)) {
+      console.warn(
+        `[GH Switcher] Recent switch to "${targetAccount}" already attempted for this URL. Skipping to avoid an auth redirect loop.`
+      );
+      return;
+    }
+
     console.log(
       `[GH Switcher] Wrong account: have "${currentAccount}", need "${targetAccount}". Switching...`
     );
 
+    lastSwitchTime = Date.now();
+    await markSwitchAttempt(url, targetAccount);
+
     const switched = await performSwitch(targetAccount);
     if (switched) {
-      lastSwitchTime = Date.now();
       window.location.reload();
     }
   }
@@ -126,6 +137,8 @@
   ]);
 
   async function getTargetAccount(url) {
+    if (isGitHubAuthFlow(url)) return null;
+
     const { rules = [], defaultAccount = null } = await chrome.storage.sync.get([
       "rules",
       "defaultAccount",
@@ -139,6 +152,67 @@
     if (!firstSegment || GITHUB_SYSTEM_PATHS.has(firstSegment)) return null;
 
     return defaultAccount;
+  }
+
+  function isGitHubAuthFlow(url) {
+    const path = url.pathname;
+    const segments = path.split("/").filter(Boolean);
+    const firstSegment = segments[0];
+
+    if (
+      [
+        "login",
+        "logout",
+        "signup",
+        "sessions",
+        "password_reset",
+        "account_verifications",
+        "users",
+      ].includes(firstSegment)
+    ) {
+      return true;
+    }
+
+    return (
+      /^\/orgs\/[^/]+\/sso(?:\/|$)/.test(path) ||
+      /^\/enterprises\/[^/]+\/sso(?:\/|$)/.test(path)
+    );
+  }
+
+  async function hasRecentSwitchAttempt(url, targetAccount) {
+    const attempts = await getRecentSwitchAttempts();
+    const key = getSwitchAttemptKey(url, targetAccount);
+    const lastAttemptTime = attempts[key];
+
+    return (
+      typeof lastAttemptTime === "number" &&
+      Date.now() - lastAttemptTime < SWITCH_ATTEMPT_TTL_MS
+    );
+  }
+
+  async function markSwitchAttempt(url, targetAccount) {
+    const now = Date.now();
+    const attempts = await getRecentSwitchAttempts();
+    const nextAttempts = {};
+
+    for (const [key, timestamp] of Object.entries(attempts)) {
+      if (typeof timestamp === "number" && now - timestamp < SWITCH_ATTEMPT_TTL_MS) {
+        nextAttempts[key] = timestamp;
+      }
+    }
+
+    nextAttempts[getSwitchAttemptKey(url, targetAccount)] = now;
+    await chrome.storage.local.set({ [SWITCH_ATTEMPTS_STORAGE_KEY]: nextAttempts });
+  }
+
+  async function getRecentSwitchAttempts() {
+    const data = await chrome.storage.local.get(SWITCH_ATTEMPTS_STORAGE_KEY);
+    const attempts = data[SWITCH_ATTEMPTS_STORAGE_KEY];
+    return attempts && typeof attempts === "object" ? attempts : {};
+  }
+
+  function getSwitchAttemptKey(url, targetAccount) {
+    return `${targetAccount}:${url.pathname}${url.search}`;
   }
 
   function matchRule(rule, url) {

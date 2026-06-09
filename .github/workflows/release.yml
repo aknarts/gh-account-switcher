@@ -1,4 +1,4 @@
-name: Release and Publish
+name: Release
 
 on:
   push:
@@ -31,16 +31,3 @@ jobs:
         with:
           files: gh-account-switcher-${{ env.VERSION }}.zip
           generate_release_notes: true
-
-      - name: Publish to Chrome Web Store
-        if: ${{ env.CHROME_EXTENSION_ID != '' }}
-        env:
-          CHROME_EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
-        run: |
-          npx chrome-webstore-upload-cli upload \
-            --source gh-account-switcher-${{ env.VERSION }}.zip \
-            --extension-id ${{ secrets.CHROME_EXTENSION_ID }} \
-            --client-id ${{ secrets.CHROME_CLIENT_ID }} \
-            --client-secret ${{ secrets.CHROME_CLIENT_SECRET }} \
-            --refresh-token ${{ secrets.CHROME_REFRESH_TOKEN }} \
-            --auto-publish
