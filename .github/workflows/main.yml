@@ -26,8 +26,8 @@ jobs:
         id: auth
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: ${{ vars.CWS_WIF_PROVIDER }}
-          service_account: ${{ vars.CWS_SERVICE_ACCOUNT }}
+          workload_identity_provider: ${{ secrets.CWS_WIF_PROVIDER }}
+          service_account: ${{ secrets.CWS_SERVICE_ACCOUNT }}
           token_format: 'access_token'
 
       # 3. Test the upload to the Chrome Web Store using the federated token
